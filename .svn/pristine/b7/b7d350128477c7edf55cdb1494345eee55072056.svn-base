@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>gta—10月考勤查询</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Bootstrap -->
+    <link href="/public/dist/css/bootstrap.css" rel="stylesheet" media="screen">
+    <link href="/public/stylesheets/main.css" rel="stylesheet" media="screen">
+    <link href="/public/stylesheets/jquery.ui.all.css" rel="stylesheet" media="screen">
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/public/javascripts/jquery-1.9.1.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/javascripts/autoComplete/jquery.ui.core.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/javascripts/autoComplete/jquery.ui.widget.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/javascripts/autoComplete/jquery.ui.position.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/javascripts/autoComplete/jquery.ui.menu.js" type="text/javascript" charset="utf-8"></script>
+    <script src="/public/javascripts/autoComplete/jquery.ui.autocomplete.js" type="text/javascript" charset="utf-8"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/public/dist/js/bootstrap.min.js" type="text/javascript" charset="utf-8"></script>
+
+</head>
+
+<script>
+    var url = #{jsRoute @Application.showName()/};
+
+    $(function () {
+        var cache = {};   //结果集缓存
+        var inputValues;    //用户输入缓存
+        $("#tags").autocomplete({
+            minLength:1,
+            source:function (request, response) {
+                var term = request.term;
+                if (term == inputValues) {
+                    response(cache)
+                    return;
+                }
+                $.ajax({
+                    url:url.url(),
+                    dataType:"json",
+                    data:{
+                        pinyin:request.term
+                    },
+                    success:function (data) {
+                        inputValues = request.term;
+                        cache = data;
+                        response(data)
+                    }
+                });
+            },
+            select:function (event, ui) {
+              $("#search").submit();
+            }
+        });
+    });
+
+
+</script>
+<body>
+
+<div id="page-container">
+    <div id="header">
+        <form class="form-inline" role="form" action="@{Application.index()}" id="search" >
+            <div class="col-lg-7" id="searchText">
+                <div class="input-group">
+                    <input type="hidden" id="flag" name="flag" value="">
+                    <input type="text" id="tags" class="form-control" name="name" value="${name}" placeholder="请输入姓名/拼音/首字母">
+                      <span class="input-group-btn">
+                        <button class="btn btn-primary" type="submit">Go!</button>
+                      </span>
+                </div>
+            </div>
+
+        </form>
+    </div>
+    <div id="content">
+        <table class="table table-bordered" style="text-align: center">
+            <thead>
+            <tr>
+                <th style="text-align: center">姓名</th>
+                <th style="text-align: center" onclick="doSort('2')"><a title="点击排序" style="cursor: pointer">部门</a></th>
+                <th style="text-align: center" onclick="doSort('1')"><a title="点击排序" style="cursor: pointer">日期</a></th>
+                <th style="text-align: center">上班打卡时间</th>
+                <th style="text-align: center">下班打卡时间</th>
+                <th style="text-align: center" onclick="doSort('3')"><a title="点击排序" style="cursor: pointer">状态</a></th>
+
+            </tr>
+            </thead>
+            <tbody>
+            #{list items:list ,as :'item'}
+            #{if item.status != 0 && item.status != -1 && item.status !=-3}
+            <tr class="danger">
+                <td>${item.name}</td>
+                <td>${item.department}</td>
+                <td>${item.punchedDate}</td>
+                <td>${item.showStatus(item).startTime}</td>
+                <td>${item.showStatus(item).endTime}</td>
+                <td>${item.showStatus(item).result}</td>
+            </tr>
+            #{/if}
+            #{elseif item.status ==-1 || item.status == -3}
+            <tr class="active">
+                <td>${item.name}</td>
+                <td>${item.department}</td>
+                <td>${item.punchedDate}</td>
+                <td>${item.showStatus(item).startTime}</td>
+                <td>${item.showStatus(item).endTime}</td>
+                <td>${item.showStatus(item).result}</td>
+            </tr>
+            #{/elseif}
+            #{else }
+            <tr class="success">
+                <td>${item.name}</td>
+                <td>${item.department}</td>
+                <td>${item.punchedDate}</td>
+                <td>${item.showStatus(item).startTime}</td>
+                <td>${item.showStatus(item).endTime}</td>
+                <td>${item.showStatus(item).result}</td>
+            </tr>
+            #{/else}
+            #{/list}
+            </tbody>
+
+        </table>
+    </div>
+
+</div>
+ <script>
+     function doSort(num){
+         $("#flag").val(num);
+         $("#search").submit();
+     }
+
+ </script>
+</body>
+</html>
+
