@@ -42,4 +42,22 @@ public class CreateESMappingService {
         am.doIndex(list);
         sw.stop();
     }
+
+    public static void createScodeMapping() throws Exception {
+        if(ElasticsearchHelper.isIndexExist(am.scode_index_name)){
+            Logger.info("索引已存在，不创建，任务退出");
+        }else{
+            StopWatch sw = new StopWatch("索引数据");
+            sw.start("建索引库");
+            am.createScodeIndexLib();
+            sw.stop();
+            sw.start("建索引表");
+            am.createScodeInfoMapping();
+            sw.stop();
+            sw.start("开始索引");
+            am.doScodeIndex();
+            sw.stop();
+
+        }
+    }
 }

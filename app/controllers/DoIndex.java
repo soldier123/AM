@@ -37,4 +37,13 @@ public class DoIndex extends Controller {
         render();
     }
 
+    public static void doScodeIndex() {
+        try {
+            CreateESMappingService.createScodeMapping();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+
 }

@@ -22,7 +22,9 @@ import utils.ElasticsearchHelper;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 
@@ -34,6 +36,7 @@ import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
  */
 public class DefaultAMServiceImpl implements AMService {
     public static final String[] DATE_FORMAT_STR_ARR = {"yyyy-MM-dd", "HH:mm"};
+
     /**
      * 创建ES客户端
      */
@@ -48,6 +51,18 @@ public class DefaultAMServiceImpl implements AMService {
             e.printStackTrace();
         }
 
+    }
+
+    @Override
+    public void createScodeIndexLib() {
+        try {
+            Builder settings = ImmutableSettings.settingsBuilder()
+                    .loadFromSource(getAnalysisSettings());
+            ElasticsearchHelper.createIndex(scode_index_name, settings);
+        } catch (Exception e) {
+            Logger.info("创建ES客户端时出错！");
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -176,6 +191,40 @@ public class DefaultAMServiceImpl implements AMService {
         ElasticsearchHelper.createMapping(index_name, index_type_news_info, mapping);
     }
 
+    @Override
+    public void createScodeInfoMapping() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder();
+        mapping.startObject()
+                .startObject(scode_index_type_news_info)
+                .startObject("properties")
+                .startObject("scode")
+                .field("type", "integer")
+                .field("store", "yes")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("trd_type")
+                .field("type", "integer")
+                .field("store", "yes")
+                .field("index", "not_analyzed")
+                .endObject()
+                .startObject("trade_time")
+                .field("type", "date")
+                .field("store", "yes")
+                .field("index", "no")
+                .endObject();
+        for (int i = 0; i <= 299; i++) {
+            mapping.startObject("index_" + i)
+                    .field("type", "double")
+                    .field("store", "yes")
+                    .field("index", "not_analyzed")
+                    .endObject();
+        }
+        mapping.endObject()
+                .endObject()
+                .endObject();
+        ElasticsearchHelper.createMapping(scode_index_name, scode_index_type_news_info, mapping);
+    }
+
     /**
      * 开始创建索引
      *
@@ -209,6 +258,42 @@ public class DefaultAMServiceImpl implements AMService {
         }
     }
 
+    public void doScodeIndex() throws Exception {
+        BulkRequestBuilder bulkRequestBuilder= null;
+        for (int i = 0; i < 1000; i++) {
+             bulkRequestBuilder = ElasticsearchHelper.getClient().prepareBulk();
+            XContentBuilder mapping = XContentFactory.jsonBuilder();
+            mapping.startObject()
+                    .field("scode", (int)(Math.random()*3000))
+                    .field("trd_type", (int)(Math.random()*20))
+                    .field("trade_time", CommonUtils.randomDate("1990-12-13", "2013-12-13"));
+            for(int j = 0; j <=299; j ++){
+                    mapping.field("index_"+j, (int)(Math.random()*1000));
+            }
+            mapping.endObject();
+            bulkRequestBuilder.add(ElasticsearchHelper.getClient().prepareIndex(scode_index_name, scode_index_type_news_info)
+                    .setSource(mapping));
+            if (bulkRequestBuilder.numberOfActions() > 0) {
+                ElasticsearchHelper.indexByBulk(bulkRequestBuilder);
+                bulkRequestBuilder=null;
+
+            } else {
+                Logger.info("这个批次没有相应的记录要索引");
+            }
+            Logger.info(mapping.toString());
+        }
+
+        Logger.info("索引完成");
+    /*    if (bulkRequestBuilder.numberOfActions() > 0) {
+            ElasticsearchHelper.indexByBulk(bulkRequestBuilder);
+            bulkRequestBuilder=null;
+
+        } else {
+            Logger.info("这个批次没有相应的记录要索引");
+        }*/
+    }
+
+
     /**
      * 查询入口，输入姓名拼音首字母，得到response
      *
@@ -228,6 +313,7 @@ public class DefaultAMServiceImpl implements AMService {
 
     /**
      * 查询入口，输入姓名，得到response
+     *
      * @param name
      * @return
      */
@@ -246,13 +332,14 @@ public class DefaultAMServiceImpl implements AMService {
 
     /**
      * 根据姓名，月份 得到response
+     *
      * @param name
      * @return
      */
     @Override
-    public List<UserInfoDto> searchInfoByNameAndMonth(String name,int month) {
-        Date startDate = CommonUtils.parseDate("2013-"+month+"-01");
-        Date endDate = CommonUtils.parseDate("2013-"+month+"-31");
+    public List<UserInfoDto> searchInfoByNameAndMonth(String name, int month) {
+        Date startDate = CommonUtils.parseDate("2013-" + month + "-01");
+        Date endDate = CommonUtils.parseDate("2013-" + month + "-31");
         AndFilterBuilder newsFileFilterBuilder = FilterBuilders.andFilter().cache(false);
         newsFileFilterBuilder.add(FilterBuilders.rangeFilter(InfomationFieldMapping.PUNCHEDDATE).from(startDate).to(endDate));
         newsFileFilterBuilder.add(FilterBuilders.prefixFilter(InfomationFieldMapping.PRIMITIVENAME, name));
@@ -300,7 +387,7 @@ public class DefaultAMServiceImpl implements AMService {
                     e.printStackTrace();
                 }
                 if (minutes > 45) {
-                    lateNum = lateNum +1;
+                    lateNum = lateNum + 1;
                     lateMinutes = lateMinutes + (minutes - 45);
                 }
             }

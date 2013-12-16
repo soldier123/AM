@@ -13,7 +13,9 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.ImmutableSettings.Builder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -42,8 +44,11 @@ public class ElasticsearchHelper {
     public static int DEFAULT_PAGE_SIZE = 50;
 
     static {
-        client = new TransportClient().addTransportAddress(
-                new InetSocketTransportAddress(Play.configuration.getProperty("elasticsearch.server", "localhost"),
+        Settings settings = ImmutableSettings.settingsBuilder()
+                .put("cluster.name", "gta").put("client.transport.sniff", true).build();
+        client = new TransportClient(settings);
+
+        client = client.addTransportAddress( new InetSocketTransportAddress("192.168.100.100",
                         Integer.valueOf(Play.configuration.getProperty("elasticsearch.port", "9300"))));
         //client.connectedNodes();
 

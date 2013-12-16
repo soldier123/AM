@@ -16,6 +16,9 @@ public interface AMService {
     public static final String index_name = "am_data_test";
     public static final String index_type_news_info = "am_info_test";
 
+    public static final String scode_index_name = "scode_index";
+    public static final String scode_index_type_news_info = "scode_index_info";
+
     /**
      * 创建索引库,相当于创建数据库
      */
@@ -68,4 +71,10 @@ public interface AMService {
          */
         public static final String STATUS  = "status";
     }
+
+    public void createScodeIndexLib();
+
+    public void createScodeInfoMapping() throws Exception;
+
+    public void doScodeIndex() throws Exception;
 }
